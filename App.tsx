@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { type Substitution, type Language, type PantryFilterId, type SavedFavoriteItem } from './types';
 import { translations } from './translations';
-import { findSubstitutions, identifyIngredientFromImage, interpretSubstitutionsLanguage } from './services/geminiService';
+import { findSubstitutions, identifyIngredientFromImage, interpretSubstitutionsLanguage, hasApiKey, setApiKey, getApiKey } from './services/geminiService';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { ErrorMessage } from './components/ErrorMessage';
 import { SubstitutionCard } from './components/SubstitutionCard';
@@ -18,7 +18,9 @@ import {
   UtensilsCrossed,
   Layers,
   Bookmark,
-  Search
+  Search,
+  Key,
+  X
 } from 'lucide-react';
 
 const STORAGE_FAVORITES_KEY = 'subtify_favorites_v1';
@@ -77,6 +79,11 @@ const App: React.FC = () => {
   
   // Mobile sheet expansion state
   const [isSheetExpanded, setIsSheetExpanded] = useState<boolean>(true);
+
+  // API Key settings state
+  const [isApiKeySet, setIsApiKeySet] = useState<boolean>(() => hasApiKey());
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState<boolean>(false);
+  const [tempApiKey, setTempApiKey] = useState<string>('');
 
   const t = translations[language];
   const currentSubstitutions = substitutionsByLang[language];
@@ -334,6 +341,25 @@ const App: React.FC = () => {
 
         {/* Right header controls: Favorites bookmark + simple ID | EN switcher */}
         <div className="flex items-center gap-2">
+          {/* API Key Modal Trigger */}
+          <button
+            type="button"
+            onClick={() => {
+              setTempApiKey(getApiKey());
+              setIsKeyModalOpen(true);
+            }}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-bold transition-colors shadow-xs min-h-[32px] ${
+              isApiKeySet 
+                ? 'bg-stone-900/60 hover:bg-stone-900/80 border-white/20 text-white' 
+                : 'bg-[#C25E2E] hover:bg-[#A94B20] border-amber-300 text-white shadow-md'
+            }`}
+            title={isApiKeySet ? (language === 'id' ? 'Kunci API Gemini Aktif' : 'Gemini API Key Active') : (language === 'id' ? 'Atur API Key Gemini' : 'Set Gemini API Key')}
+          >
+            <Key className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">API Key</span>
+            <span className={`w-2 h-2 rounded-full ${isApiKeySet ? 'bg-emerald-400' : 'bg-amber-300 animate-ping'}`} />
+          </button>
+
           <button
             type="button"
             id="open-favorites-button"
@@ -548,6 +574,33 @@ const App: React.FC = () => {
                 ) : (
                   /* Search Form View */
                   <form id="substitute-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 pt-1">
+                    {!isApiKeySet && (
+                      <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-md flex items-start gap-2.5 text-xs text-amber-900 shadow-xs">
+                        <Key className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-bold text-stone-900">
+                            {language === 'id' ? 'Kunci API Gemini Belum Disetel' : 'Gemini API Key Required'}
+                          </p>
+                          <p className="text-stone-600 mt-0.5 leading-relaxed text-[11px]">
+                            {language === 'id'
+                              ? 'Fitur pencarian bahan AI & foto membutuhkan Google Gemini API Key. Klik tombol di bawah atau atur di file .env.'
+                              : 'AI substitutions and photo scanning require a Google Gemini API Key. Click below or configure in your .env file.'}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTempApiKey(getApiKey());
+                              setIsKeyModalOpen(true);
+                            }}
+                            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-[#C25E2E] hover:bg-[#A94B20] text-white font-bold rounded text-[11px] transition-colors shadow-xs"
+                          >
+                            <Key className="w-3 h-3" />
+                            <span>{language === 'id' ? 'Masukkan API Key' : 'Configure API Key'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="text-center mb-3">
                       <h2 className="text-xl sm:text-2xl font-bold font-serif text-stone-900 leading-snug">
                         {t.formHeading}
@@ -698,6 +751,82 @@ const App: React.FC = () => {
         onClearRecentSearches={handleClearRecentSearches}
         language={language}
       />
+
+      {/* API Key Modal */}
+      {isKeyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-5 border border-stone-200">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-md bg-[#FAF2ED] text-[#C25E2E] flex items-center justify-center">
+                  <Key className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-bold text-stone-900 font-serif">
+                  {language === 'id' ? 'Pengaturan Kunci API Gemini' : 'Gemini API Key Settings'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsKeyModalOpen(false)}
+                className="p-1 text-stone-400 hover:text-stone-600 rounded-md transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="mt-3 text-xs text-stone-600 leading-relaxed">
+              {language === 'id'
+                ? 'Aplikasi membutuhkan Google Gemini API Key untuk mencari bahan pengganti dan menganalisis foto. Kunci disimpan di browser Anda atau bisa diatur di file .env (GEMINI_API_KEY).'
+                : 'The application requires a Google Gemini API Key for culinary substitutions and photo recognition. Stored in your local browser or configure via .env (GEMINI_API_KEY).'}
+            </p>
+
+            <div className="mt-4">
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                Gemini API Key
+              </label>
+              <input
+                type="password"
+                value={tempApiKey}
+                onChange={(e) => setTempApiKey(e.target.value)}
+                placeholder="AIzaSy..."
+                className="w-full px-3 py-2 text-xs border border-stone-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#C25E2E] focus:border-[#C25E2E] font-mono text-stone-900"
+              />
+              <p className="mt-1.5 text-[11px] text-stone-500">
+                {language === 'id' ? 'Dapatkan gratis di ' : 'Get a free key at '}
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#C25E2E] underline hover:text-[#9A451E] font-medium"
+                >
+                  Google AI Studio
+                </a>
+              </p>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsKeyModalOpen(false)}
+                className="px-3.5 py-1.5 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-md transition-colors"
+              >
+                {language === 'id' ? 'Batal' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setApiKey(tempApiKey);
+                  setIsApiKeySet(Boolean(tempApiKey.trim()));
+                  setIsKeyModalOpen(false);
+                }}
+                className="px-4 py-1.5 text-xs font-bold bg-[#C25E2E] hover:bg-[#A94B20] text-white rounded-md transition-colors shadow-xs"
+              >
+                {language === 'id' ? 'Simpan Kunci' : 'Save Key'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

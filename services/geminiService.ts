@@ -2,11 +2,30 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { type Substitution, type Language, type PantryFilterId } from '../types';
 import { PANTRY_FILTERS } from '../constants/filters';
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable not set");
-}
+export const getApiKey = (): string => {
+  const envKey = (typeof process !== 'undefined' && (process.env?.API_KEY || process.env?.GEMINI_API_KEY)) || '';
+  if (envKey) return envKey;
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('subtify_gemini_api_key') || '';
+  }
+  return '';
+};
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+export const hasApiKey = (): boolean => Boolean(getApiKey());
+
+export const setApiKey = (key: string): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('subtify_gemini_api_key', key.trim());
+  }
+};
+
+const getAI = (): GoogleGenAI => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error("API Key Gemini belum disetel. Tambahkan GEMINI_API_KEY di file .env atau atur kunci API.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 const responseSchema = {
   type: Type.ARRAY,
@@ -98,6 +117,7 @@ CRITICAL TONE & CONTEXTUAL INTERPRETATION RULES:
 
 const generateImageForIngredient = async (ingredientName: string): Promise<string> => {
   try {
+    const ai = getAI();
     const response = await ai.models.generateImages({
       model: 'imagen-3.0-generate-002',
       prompt: `A clear, high-quality, photorealistic culinary photograph of raw '${ingredientName}', clean bright studio lighting, neutral background, centered food ingredient.`,
@@ -140,6 +160,7 @@ export const identifyIngredientFromImage = async (
       text: promptText,
     };
 
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash',
       contents: { parts: [imagePart, textPart] },
@@ -201,6 +222,7 @@ Recipe context and dietary needs: "${context || 'General use, no additional rest
 
 Remember: Provide contextual culinary interpretation with rich gastronomic flavor and practical ratios, not mechanical literal translations. Ensure the 'ratio' object is provided with accurate base scaling factors.`;
 
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-3.8-flash",
       contents: prompt,
@@ -242,6 +264,9 @@ Remember: Provide contextual culinary interpretation with rich gastronomic flavo
     return substitutionsWithImages;
   } catch (error) {
     console.error("Error calling Gemini API:", error);
+    if (error instanceof Error && error.message.includes('API Key')) {
+      throw error;
+    }
     if (error instanceof Error && error.message.includes('json')) {
       throw new Error(
         language === 'id'
@@ -298,6 +323,7 @@ CRITICAL:
 Source data:
 ${JSON.stringify(cleanList, null, 2)}`;
 
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-3.8-flash",
       contents: prompt,

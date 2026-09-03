@@ -1,0 +1,17 @@
+/* SUBTIFY - Global Base Styles */
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #FAF8F5;
+}
+
+/* Smooth transition for theme colors */
+* {
+  box-sizing: border-box;
+}
