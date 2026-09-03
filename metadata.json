@@ -1,0 +1,9 @@
+{
+  "name": "SUBTIFY",
+  "description": "Temukan bahan pengganti bumbu dan masakan lokal yang praktis, hemat, dan pas dengan karakter resep Anda.",
+  "requestFramePermissions": ["camera"],
+  "prompt": "",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
