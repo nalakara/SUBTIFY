@@ -2,6 +2,8 @@
 
 > **One-line description:** Asisten pencarian bahan pengganti (substitusi) bumbu dan bahan masakan lokal Indonesia/Asia Tenggara yang praktis, ramah pasar tradisional, dan dilengkapi kalkulator takaran resep interaktif.
 
+🌐 **Live Demo**: https://subtify.vercel.app
+
 ---
 
 ## Overview
@@ -125,3 +127,18 @@ Alih-alih sekadar menerjemahkan nama bahan secara harfiah (misal: *buttermilk* m
 - **Jangan Merusak Skema JSON AI**: Logika kalkulator rasio sangat bergantung pada keutuhan objek `ratio` (`originalAmount`, `originalUnit`, `substituteAmount`, `substituteUnit`) yang dikembalikan oleh Gemini di `services/geminiService.ts`.
 - **Pindahkan Panggilan AI ke Backend**: Jika aplikasi ini akan dipublikasikan ke production, hal nomor satu yang wajib dilakukan adalah membuat server proxy (Express, Fastify, atau Cloud Function) agar API key aman di sisi server.
 - **Pertahankan Nuansa Kuliner**: Hindari mengembalikan prompt AI ke penerjemah umum. Nilai utama aplikasi ini terletak pada *system instruction* yang menuntut penalaran kuliner biokimiawi dan kosakata bumbu lokal Nusantara.
+
+## Cara Menjalankan
+
+```bash
+npm install
+cp .env.example .env   # isi GEMINI_API_KEY untuk pencarian substitusi AI
+npm run dev
+```
+
+Buka `http://localhost:5173`.
+---
+
+## License
+
+MIT License © 2026 Yudhan Sebastian
